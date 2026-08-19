@@ -1,6 +1,8 @@
 # Osaka-Research / winssh-bootstrap
 # Enables Windows OpenSSH Server, sets it to auto-start, opens the firewall port,
-# and prints the username + LAN IP(s) to connect with. Run as Administrator.
+# and prints the username + LAN IP(s) to connect with. Safe to run more than once --
+# skips the Windows Update install step if the capability is already present.
+# Run as Administrator.
 
 $ErrorActionPreference = 'SilentlyContinue'
 
@@ -10,15 +12,24 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
     exit
 }
 
-Write-Host "Installing OpenSSH Server..." -ForegroundColor Cyan
-Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0 | Out-Null
+$capability = Get-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
+if ($capability.State -ne 'Installed') {
+    Write-Host "Installing OpenSSH Server..." -ForegroundColor Cyan
+    Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0 | Out-Null
+} else {
+    Write-Host "OpenSSH Server already installed -- skipping." -ForegroundColor Yellow
+}
 
-Write-Host "Starting sshd and enabling auto-start..." -ForegroundColor Cyan
-Start-Service sshd
+if ((Get-Service sshd).Status -ne 'Running') {
+    Write-Host "Starting sshd..." -ForegroundColor Cyan
+    Start-Service sshd
+}
 Set-Service -Name sshd -StartupType Automatic
 
-Write-Host "Opening firewall port 22..." -ForegroundColor Cyan
-New-NetFirewallRule -Name sshd -DisplayName 'OpenSSH Server (sshd)' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22 -ErrorAction SilentlyContinue | Out-Null
+if (-not (Get-NetFirewallRule -Name sshd -ErrorAction SilentlyContinue)) {
+    Write-Host "Opening firewall port 22..." -ForegroundColor Cyan
+    New-NetFirewallRule -Name sshd -DisplayName 'OpenSSH Server (sshd)' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22 | Out-Null
+}
 
 Write-Host ""
 Write-Host "Done. Connection info:" -ForegroundColor Green
