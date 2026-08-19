@@ -6,7 +6,7 @@ a build tool on another machine SSH in to use this PC's CPU/GPU).
 Run in PowerShell (admin not required — it elevates itself):
 
 ```powershell
-irm https://raw.githubusercontent.com/Osaka-Research/winssh-bootstrap/main/setup-ssh.ps1 | iex
+irm https://raw.githubusercontent.com/Osaka-Research/winssh-bootstrap/master/setup-ssh.ps1 | iex
 ```
 
 Installs the OpenSSH Server optional feature, starts `sshd`, sets it to
